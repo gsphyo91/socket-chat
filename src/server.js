@@ -18,6 +18,7 @@ io.on("connection", (socket) => {
     roomId = data.seq;
     userName = data.userName;
     socket.broadcast.to(roomId).emit("welcome", data);
+    console.log(io.nsps['/'].adapter.rooms[roomId]);
   });
 
   socket.on("message", (data) => {
