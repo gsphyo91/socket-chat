@@ -9,16 +9,18 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  var roomId = '';
-  var userName = '';
+  var roomId = "";
+  var userName = "";
   console.log("New Client Connected");
   socket.on("init", (data) => {
-    console.log(data);
-    socket.join(data.seq);
-    roomId = data.seq;
-    userName = data.userName;
-    socket.broadcast.to(roomId).emit("welcome", data);
-    console.log(io.nsps['/'].adapter.rooms[roomId]);
+    try {
+      console.log(data);
+      socket.join(data.seq);
+      roomId = data.liveSeq;
+      userName = data.userName;
+      socket.broadcast.to(roomId).emit("welcome", data);
+      console.log(io.nsps["/"].adapter.rooms[roomId]);
+    } catch (err) {}
   });
 
   socket.on("message", (data) => {
