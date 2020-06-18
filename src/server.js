@@ -15,7 +15,7 @@ io.on("connection", (socket) => {
   socket.on("init", (data) => {
     try {
       console.log(data);
-      socket.join(data.seq);
+      socket.join(data.liveSeq);
       roomId = data.liveSeq;
       userName = data.userName;
       socket.broadcast.to(roomId).emit("welcome", data);
@@ -24,7 +24,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("message", (data) => {
-    console.log("message : " + data);
+    // console.log("message : " + data);
+    console.log(roomId);
     socket.emit("response", data);
     socket.broadcast.to(roomId).emit("broadcast", data);
   });
