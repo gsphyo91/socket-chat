@@ -19,33 +19,62 @@ const getParticipantList = async(liveSeq) => {
   }
 };
 
-const joinToRoom = async(liveSeq, userName) => {
+const joinToRoom = async(roomInfo, userName) => {
   try {
-    const participant = await api
-      .joinToRoom(liveSeq, userName)
-      .then(async(resp) => {
-        console.log("join");
-        console.log(resp.data);
-        const result = await getParticipantList(liveSeq);
-        return result;
-      });
-    return participant;
+    const roomType = roomInfo.split("/")[2];
+    const roomSeq = parseInt(roomInfo.split("/")[3]);
+    console.log(roomSeq, userName);
+    if (roomType === "live") {
+      const participant = await api
+        .liveJoin(roomSeq, userName)
+        .then(async(resp) => {
+          // console.log("live join");
+          console.log(resp.data);
+          const result = await api.getLiveParticipantList(roomSeq);
+          return result;
+        });
+      return participant;
+    } else {
+      const participant = await api
+        .vodJoin(roomSeq, userName)
+        .then(async(resp) => {
+          console.log("vod join");
+          console.log(resp.data);
+          const result = await api.getVodParticipantList(roomSeq);
+          return result;
+        });
+      return participant;
+    }
   } catch (err) {
     console.log(err);
   }
 };
 
-const leaveToRoom = async(liveSeq, userName) => {
+const leaveToRoom = async(roomInfo, userName) => {
   try {
-    const participant = await api
-      .leaveToRoom(liveSeq, userName)
-      .then(async(resp) => {
-        console.log("[leave]");
-        console.log(resp.data);
-        const result = await getParticipantList(liveSeq);
-        return result;
-      });
-    return participant;
+    const roomType = roomInfo.split("/")[2];
+    const roomSeq = roomInfo.split("/")[3];
+    if (roomType === "live") {
+      const participant = await api
+        .liveLeave(roomSeq, userName)
+        .then(async(resp) => {
+          console.log("live leave");
+          console.log(resp.data);
+          const result = await api.getLiveParticipantList(roomSeq);
+          return result;
+        });
+      return participant;
+    } else {
+      const participant = await api
+        .vodLeave(roomSeq, userName)
+        .then(async(resp) => {
+          console.log("vod leave");
+          console.log(resp.data);
+          const result = await api.getVodParticipantList(roomSeq);
+          return result;
+        });
+      return participant;
+    }
   } catch (err) {
     console.log(err);
   }
@@ -66,8 +95,8 @@ io.on("connection", (socket) => {
       //   console.log(resp);
       //   io.to(roomId).emit("participant", resp);
       // });
-      const participantList = await joinToRoom(roomId.split("/")[3], userName);
-      console.log(participantList);
+      const participantList = await joinToRoom(roomId, userName);
+      // console.log(participantList);
       // const participantList = await joinToRoom(roomId, userName);
       // console.log('[participantList]');
       // console.log(participantList);
@@ -81,15 +110,22 @@ io.on("connection", (socket) => {
     // console.log("message : " + data);
     console.log(roomId.split("/"));
     console.log(data);
-    if (roomId.split("/")[2] === 'live') {
+    if (roomId.split("/")[2] === "live") {
       const liveSeq = roomId.split("/")[3];
-      const { data: respLiveChatLog } = await api.liveChatLog(liveSeq, data.userName, data.msg);
+      const { data: respLiveChatLog } = await api.liveChatLog(
+        liveSeq,
+        data.userName,
+        data.msg
+      );
       console.log(respLiveChatLog.body);
     } else {
       const vodSeq = roomId.split("/")[3];
-      const { data: respVodChatLog } = await api.vodChatLog(vodSeq, data.userName, data.msg);
+      const { data: respVodChatLog } = await api.vodChatLog(
+        vodSeq,
+        data.userName,
+        data.msg
+      );
       console.log(respVodChatLog.body);
-
     }
     socket.emit("response", data);
     socket.broadcast.to(roomId).emit("broadcast", data);
@@ -98,11 +134,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async() => {
     console.log("Client disconnected");
     console.log(roomId, userName);
-    const participantList = await leaveToRoom(roomId.split("/")[3], userName);
-    console.log(participantList);
-    socket.broadcast.to(roomId).emit("announce_dis", userName);
-    io.to(roomId).emit("participant", participantList);
-    socket.leave(roomId);
+    if (roomId) {
+      const participantList = await leaveToRoom(roomId, userName);
+      // console.log(participantList);
+      socket.broadcast.to(roomId).emit("announce_dis", userName);
+      io.to(roomId).emit("participant", participantList);
+      socket.leave(roomId);
+    }
   });
 });
 
